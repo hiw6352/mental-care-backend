@@ -9,6 +9,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: local
       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       # 필요 시 주석 해제해서 사용
       # OPENAI_API_KEY: your-key-here
       # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ""
