@@ -6,8 +6,9 @@ public class RiskReplySchema implements JsonSchema.SchemaRoot {
 
     private final String type = "object";
     private final Properties properties = new Properties();
-    private final String[] required = new String[]{"reply", "risk_level", "confidence",
-        "next_question"};
+    // 🔧 strict=true이므로 모든 키가 required에 포함되어야 함
+    private final String[] required = new String[]{"reply", "next_question", "risk_level",
+        "confidence", "mode"};
     @JsonProperty("additionalProperties")
     private final boolean additionalProperties = false;
 
@@ -33,9 +34,11 @@ public class RiskReplySchema implements JsonSchema.SchemaRoot {
         @JsonProperty("next_question")
         public final StringType next_question = new StringType();
         @JsonProperty("risk_level")
-        public final EnumString risk_level = new EnumString(
-            new String[]{"ok", "watch", "concern", "crisis"});
+        public final EnumString risk_level =
+            new EnumString(new String[]{"ok", "watch", "concern", "crisis"});
         public final NumberRange confidence = new NumberRange(0.0, 1.0);
+        public final EnumString mode =
+            new EnumString(new String[]{"casual", "supportive", "counseling", "crisis"});
     }
 
     public static class StringType {

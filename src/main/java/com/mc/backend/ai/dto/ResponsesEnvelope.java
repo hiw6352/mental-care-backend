@@ -5,14 +5,20 @@ import java.util.List;
 public record ResponsesEnvelope(List<Output> output) {
 
     public String firstText() {
-        if (output == null || output.isEmpty()) {
+        if (output == null) {
             return null;
         }
-        var cont = output.get(0).content();
-        if (cont == null || cont.isEmpty()) {
-            return null;
+        for (var o : output) {
+            if (o.content() == null) {
+                continue;
+            }
+            for (var c : o.content()) {
+                if ("output_text".equals(c.type()) && c.text() != null) {
+                    return c.text();
+                }
+            }
         }
-        return cont.get(0).text();
+        return null; // (선택) refusal 처리 추가 가능
     }
 
     public record Output(String id, String type, String role, List<Content> content) {

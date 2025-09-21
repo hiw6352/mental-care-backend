@@ -1,8 +1,9 @@
-package com.mc.backend.ai;
+package com.mc.backend.api;
 
 
-import com.mc.backend.ai.dto.ChatRequest;
-import java.util.Map;
+import com.mc.backend.ai.SafetyRouterService;
+import com.mc.backend.api.dto.ChatMessageRequest;
+import com.mc.backend.api.dto.ChatMessageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,7 +18,7 @@ public class ChatController {
     private final SafetyRouterService router;
 
     @PostMapping("/messages")
-    public Map<String, Object> send(@RequestBody ChatRequest req) {
-        return router.chatOnce(req.message());
+    public ChatMessageResponse send(@RequestBody ChatMessageRequest req) {
+        return router.chatOnce(req);
     }
 }
