@@ -5,14 +5,12 @@ import com.mc.backend.ai.dto.RiskOnlyVerdict;
 import com.mc.backend.ai.dto.RiskReply;
 import com.mc.backend.ai.enums.ChatMode;
 import com.mc.backend.ai.enums.RiskLevel;
+import com.mc.backend.ai.util.RiskGate;
 import com.mc.backend.api.dto.ChatMessageRequest;
 import com.mc.backend.api.dto.ChatMessageResponse;
 import com.mc.backend.chat.store.ConversationStore;
 import com.mc.backend.chat.store.ConversationStore.ChatTurn;
 import com.mc.backend.chat.store.ConversationStore.Role;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -44,27 +42,21 @@ public class SafetyRouterService {
 
     public ChatMessageResponse chatOnce(ChatMessageRequest req) {
         String sid = (req.sessionId() == null || req.sessionId().isBlank())
-            ? UUID.randomUUID().toString()
+            ? java.util.UUID.randomUUID().toString()
             : req.sessionId();
 
         if (Boolean.TRUE.equals(req.reset())) {
             store.reset(sid);
         }
 
-        // 0) Pre-moderation
         if (moderationHighRisk(openai.moderate(req.message()))) {
             return crisisTemplate(sid);
         }
 
-        // 1) history + mini
-        List<ChatTurn> history = store.history(sid);
+        var history = store.history(sid);
         RiskReply rr = openai.classifyWithMini(history, req.message());
 
-        // 2) escalate on risk
-        boolean escalate =
-            (rr.riskLevel() == RiskLevel.CONCERN || rr.riskLevel() == RiskLevel.CRISIS)
-                && (rr.confidence() != null && rr.confidence() >= CONF_T);
-
+        boolean escalate = RiskGate.shouldEscalate(rr.riskLevel(), rr.confidence(), CONF_T);
         if (escalate) {
             RiskOnlyVerdict v = openai.verdictWithGpt5(req.message());
             if (v.riskLevel() == RiskLevel.CONCERN || v.riskLevel() == RiskLevel.CRISIS) {
@@ -72,16 +64,13 @@ public class SafetyRouterService {
             }
         }
 
-        // 3) Post-moderation(출력)
         if (moderationHighRisk(openai.moderate(rr.reply()))) {
             return crisisTemplate(sid);
         }
 
-        // 4) 저장
-        store.append(sid, new ChatTurn(Role.USER, req.message(), Instant.now()));
-        store.append(sid, new ChatTurn(Role.ASSISTANT, rr.reply(), Instant.now()));
+        store.append(sid, new ChatTurn(Role.USER, req.message(), java.time.Instant.now()));
+        store.append(sid, new ChatTurn(Role.ASSISTANT, rr.reply(), java.time.Instant.now()));
 
-        // 5) DTO로 반환
         return new ChatMessageResponse(
             sid, rr.reply(), rr.nextQuestion(), rr.riskLevel(), rr.confidence(), rr.mode()
         );
